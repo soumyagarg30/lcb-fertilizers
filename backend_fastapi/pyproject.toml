@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "agriflow-backend-fastapi"
+version = "0.1.0"
+description = "FastAPI reimplementation of Agriflow backend"
+authors = ["agriflow"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.95.2"
+uvicorn = {extras = ["standard"], version = "^0.22.0"}
+sqlmodel = "^0.0.8"
+asyncpg = "^0.27.0"
+passlib = "^1.7.4"
+python-jose = "^3.3.0"
+python-dotenv = "^1.0.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
