@@ -27,13 +27,28 @@ class Warehouse(SQLModel, table=True):
     id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     name: str
     code: Optional[str]
+    address: Optional[str] = None
+    gps_coordinates: Optional[str] = None
+    capacity: Optional[float] = None
+    manager_id: Optional[str] = None
+    currency: Optional[str] = "INR"
+    unit_preference: Optional[str] = "bags"
+    tax_code: Optional[str] = None
 
 class Product(SQLModel, table=True):
     id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     name: str
     sku: Optional[str]
-    uom: Optional[str]
-    base_price: Optional[float]
+    category: Optional[str] = None
+    subcategory: Optional[str] = None
+    description: Optional[str] = None
+    uom: Optional[str] = None
+    base_price: Optional[float] = 0
+    supplier: Optional[str] = None
+    shelf_life_days: Optional[int] = None
+    tags: Optional[List[str]] = Field(default=None, sa_column=Column(SA_JSON))
+    image_urls: Optional[List[str]] = Field(default=None, sa_column=Column(SA_JSON))
+    document_urls: Optional[List[str]] = Field(default=None, sa_column=Column(SA_JSON))
 
 class Inventory(SQLModel, table=True):
     id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
@@ -133,4 +148,5 @@ class Notification(SQLModel, table=True):
     entity_type: Optional[str] = None
     entity_id: Optional[str] = None
     priority: Optional[str] = "medium"
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 

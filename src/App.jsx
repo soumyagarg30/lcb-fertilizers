@@ -48,6 +48,25 @@ async function apiFetch(path, opts = {}) {
   }
 }
 
+async function loadData(path, localKey, seed, normalize = data => data) {
+  try {
+    const res = await apiFetch(path);
+    const data = normalize(res);
+    if (data) setData(localKey, data);
+    return data;
+  } catch (err) {
+    return getData(localKey, seed);
+  }
+}
+
+async function loadApi(path, fallback = null) {
+  try {
+    return await apiFetch(path);
+  } catch (err) {
+    return fallback;
+  }
+}
+
 // ─── Mock User Store ───────────────────────────────────────────────────────────
 
 const USERS_KEY = "agriflow_users";
@@ -843,19 +862,45 @@ function TopBar({ active, collapsed, setCollapsed, onLogout, currentUser, select
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 function Dashboard({ orders }) {
+  const [summary, setSummary] = useState(null);
+  const [dashboardData, setDashboardData] = useState({ movement_chart: [], top_products: [], alerts: [], notifications: [] });
   const totalRevenue = orders.filter(o => o.status === "Delivered").reduce((s, o) => s + o.amount, 0);
   const activeOrders = orders.filter(o => !["Delivered", "Cancelled"].includes(o.status)).length;
   const stock = getData(STOCK_KEY, seedStock);
   const lowStock = stock.filter(s => s.status !== "ok").length;
 
+  useEffect(() => {
+    (async () => {
+      const data = await loadApi("/api/dashboard", null);
+      if (data) {
+        setSummary(data.summary || null);
+        setDashboardData({
+          movement_chart: data.movement_chart || [],
+          top_products: data.top_products || [],
+          alerts: data.alerts || [],
+          notifications: data.notifications || [],
+        });
+      }
+    })();
+  }, []);
+
+  const metrics = summary || {
+    total_skus: stock.length,
+    total_stock_units: stock.reduce((sum, item) => sum + (item.stock || 0), 0),
+    low_stock_items: lowStock,
+    out_of_stock_items: stock.filter(s => s.status === "out").length,
+    orders_pending: orders.filter(o => ["Pending", "Confirmed", "Packed", "Shipped", "In Transit"].includes(o.status)).length,
+    inventory_value_inr: stock.reduce((sum, item) => sum + ((item.stock || 0) * (item.price || 0)), 0),
+  };
+
   return (
     <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 20 }}>
         {[
-          { label: "Total Revenue", value: fmt(totalRevenue), sub: "Delivered orders", color: "#16a34a" },
-          { label: "Active Orders", value: activeOrders, sub: "In progress", color: C.info },
-          { label: "Low Stock Items", value: lowStock, sub: "Needs attention", color: C.warning },
-          { label: "Delivered Today", value: 38, sub: "94% success rate", color: "#0891b2" },
+          { label: "Total SKUs", value: metrics.total_skus, sub: "Active products", color: "#16a34a" },
+          { label: "Total Stock Units", value: fmt(metrics.total_stock_units), sub: "Across all warehouses", color: C.info },
+          { label: "Low Stock Items", value: metrics.low_stock_items, sub: "Needs attention", color: C.warning },
+          { label: "Out of Stock Items", value: metrics.out_of_stock_items, sub: "Critical shortages", color: C.danger },
         ].map((s, i) => (
           <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14, padding: "16px 18px", borderTop: `3px solid ${s.color}` }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: C.faint, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 8 }}>{s.label}</div>
@@ -954,6 +999,13 @@ function OrdersPage({ showToast }) {
   const [modal, setModal] = useState(null); // null | "new" | "view" | "edit"
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({ customer: "", product: "", qty: "", amount: "", status: "Pending", dist: "-", date: new Date().toISOString().slice(0, 10) });
+
+  useEffect(() => {
+    (async () => {
+      const data = await loadData("/api/orders", ORDERS_KEY, seedOrders, res => res.data || res);
+      setOrders(data || getData(ORDERS_KEY, seedOrders));
+    })();
+  }, []);
 
   const statuses = ["All", "Pending", "Confirmed", "Packed", "Shipped", "In Transit", "Delivered", "Cancelled"];
   const filtered = filter === "All" ? orders : orders.filter(o => o.status === filter);
@@ -1155,6 +1207,13 @@ function ProductsPage({ showToast }) {
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({ name: "", category: "Chemical", sku: "", price: "", weight: "", min: "", stock: "", expiry: "" });
 
+  useEffect(() => {
+    (async () => {
+      const data = await loadData("/api/products", STOCK_KEY, seedStock, res => res.data || res);
+      setProducts(data || getData(STOCK_KEY, seedStock));
+    })();
+  }, []);
+
   const cats = ["All", "Organic", "Chemical", "Bio", "Micronutrients", "Pesticides"];
   const filtered = catFilter === "All" ? products : products.filter(p => p.category === catFilter);
 
@@ -1252,6 +1311,13 @@ function InventoryPage({ showToast }) {
   const [stock, setStock] = useState(() => getData(STOCK_KEY, seedStock));
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({ id: "", qty: "", type: "add" });
+
+  useEffect(() => {
+    (async () => {
+      const data = await loadData("/api/inventory", STOCK_KEY, seedStock, res => res.data || res);
+      setStock(data || getData(STOCK_KEY, seedStock));
+    })();
+  }, []);
 
   const alertItems = stock.filter(s => s.status !== "ok");
 

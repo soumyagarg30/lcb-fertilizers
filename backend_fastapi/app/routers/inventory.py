@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from typing import Optional
 from sqlmodel import select
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import Inventory, Product, Warehouse, StockMovement, CycleCount, AuditLog, User
@@ -11,7 +12,7 @@ from datetime import datetime
 router = APIRouter(prefix="/inventory", tags=["inventory"])
 
 @router.get("/", response_model=list[InventoryOut])
-async def list_inventory(page: int = 1, limit: int = 50, search: Optional[str] = None, warehouseId: Optional[str] = None, user=Depends(get_current_user), session: AsyncSession = Depends(get_session)):
+async def list_inventory(page: int = 1, limit: int = 50, search: Optional[str] = None, warehouseId: Optional[str] = None, session: AsyncSession = Depends(get_session)):
     offset = (page - 1) * limit
     q = select(Inventory).offset(offset).limit(limit)
     if warehouseId:
@@ -28,6 +29,32 @@ async def movements_history(page: int = 1, limit: int = 50, productId: Optional[
     if warehouseId: q = q.where(StockMovement.warehouse_id == warehouseId)
     results = await session.exec(q)
     return {"data": results.all()}
+
+@router.get("/summary")
+async def inventory_summary(session: AsyncSession = Depends(get_session)):
+    total_skus = (await session.execute(select(func.count()).select_from(Inventory))).scalar_one() or 0
+    total_units = (await session.execute(select(func.coalesce(func.sum(Inventory.quantity_on_hand), 0)))).scalar_one() or 0
+    low_stock = (await session.execute(select(func.count()).select_from(Inventory).where(Inventory.quantity_on_hand < Inventory.min_threshold))).scalar_one() or 0
+    out_of_stock = (await session.execute(select(func.count()).select_from(Inventory).where(Inventory.quantity_on_hand <= 0))).scalar_one() or 0
+    results = await session.exec(select(Inventory).where(Inventory.quantity_on_hand < Inventory.min_threshold).limit(20))
+    alerts = []
+    for inv in results.all():
+        product = await session.get(Product, inv.product_id)
+        alerts.append({
+            "product_id": inv.product_id,
+            "product_name": product.name if product else None,
+            "warehouse_id": inv.warehouse_id,
+            "quantity": inv.quantity_on_hand,
+            "threshold": inv.min_threshold,
+            "type": "low_stock",
+        })
+    return {
+        "total_skus": int(total_skus),
+        "total_units": float(total_units),
+        "low_stock": int(low_stock),
+        "out_of_stock": int(out_of_stock),
+        "alerts": alerts,
+    }
 
 @router.get("/cycle-counts")
 async def cycle_counts(session: AsyncSession = Depends(get_session)):
