@@ -32,7 +32,7 @@ function isTokenValid(token) {
 }
 
 // ─── API Helper ──────────────────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 async function apiFetch(path, opts = {}) {
   const url = `${API_BASE}${path}`;
   const headers = opts.headers || {};
@@ -518,7 +518,7 @@ function LoginPage({ onLogin, onGoogleLogin }) {
     // Try server-side verification first
     (async () => {
       try {
-        const r = await fetch((import.meta.env.VITE_API_BASE || "http://localhost:5000") + "/api/auth/google", {
+        const r = await fetch((import.meta.env.VITE_API_BASE || "http://localhost:8000") + "/api/auth/google", {
           method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ credential: response.credential })
         });
         const data = await r.json();

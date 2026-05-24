@@ -9,14 +9,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 app = FastAPI(title="Agriflow FastAPI")
 
-app.include_router(auth_router.router)
-app.include_router(inventory_router.router)
+app.include_router(auth_router.router, prefix="/api")
+app.include_router(inventory_router.router, prefix="/api")
 from .routers import users as users_router, products as products_router, orders as orders_router, transfers as transfers_router, notifications as notifications_router
-app.include_router(users_router.router)
-app.include_router(products_router.router)
-app.include_router(orders_router.router)
-app.include_router(transfers_router.router)
-app.include_router(notifications_router.router)
+app.include_router(users_router.router, prefix="/api")
+app.include_router(products_router.router, prefix="/api")
+app.include_router(orders_router.router, prefix="/api")
+app.include_router(transfers_router.router, prefix="/api")
+app.include_router(notifications_router.router, prefix="/api")
 
 
 @app.on_event("startup")

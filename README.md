@@ -1,4 +1,23 @@
-# React + Vite
+# Agriflow
+
+Frontend: React + Vite.
+Backend: FastAPI in `backend_fastapi/`.
+
+This project is a warehouse and inventory management dashboard scaffold with a FastAPI backend and React frontend.
+
+## Getting Started
+
+1. Start the backend:
+   - `cd backend_fastapi`
+   - `python -m pip install -r requirements.txt`
+   - `uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`
+
+2. Start the frontend:
+   - `cd ..`
+   - `npm install`
+   - `npm run dev`
+
+3. Open the frontend app in the browser. The React frontend defaults to `http://localhost:8000` for API calls unless `VITE_API_BASE` is set.
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
