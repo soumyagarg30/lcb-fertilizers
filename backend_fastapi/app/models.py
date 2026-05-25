@@ -150,3 +150,29 @@ class Notification(SQLModel, table=True):
     priority: Optional[str] = "medium"
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+
+class QRCode(SQLModel, table=True):
+    id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    code: str = Field(unique=True, index=True)  # Unique QR code identifier
+    product_id: Optional[str] = None
+    warehouse_id: Optional[str] = None
+    inventory_id: Optional[str] = None
+    batch_number: Optional[str] = None
+    item_name: Optional[str] = None
+    item_metadata: Optional[dict] = Field(default=None, sa_column=Column(SA_JSON))
+    created_by: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_active: bool = True
+
+
+class QRCodeScan(SQLModel, table=True):
+    id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    qr_code_id: str
+    user_id: Optional[str] = None
+    warehouse_id: Optional[str] = None
+    location: Optional[str] = None  # e.g., "shelf A-12"
+    action: Optional[str] = None  # e.g., "received", "moved", "verified", "packed"
+    notes: Optional[str] = None
+    coordinates: Optional[str] = None  # GPS/location tracking if available
+    scanned_at: datetime = Field(default_factory=datetime.utcnow)
+

@@ -3,6 +3,9 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line
 } from "recharts";
+import QRCodeGenerator from "./components/QRCodeGenerator";
+import QRScanner from "./components/QRScanner";
+import QRCodeHistory from "./components/QRCodeHistory";
 
 // ─── Google OAuth Config ──────────────────────────────────────────────────────
 // Use Vite environment variable `VITE_GOOGLE_CLIENT_ID` when provided.
@@ -737,6 +740,7 @@ function Sidebar({ active, setActive, collapsed, currentUser }) {
     { section: "Catalog" },
     { id: "products", label: "Products", roles: ["superadmin", "manager"] },
     { id: "inventory", label: "Inventory", roles: ["superadmin", "manager", "staff"] },
+    { id: "qrcode", label: "QR Code Tracking", roles: ["superadmin", "manager", "staff"] },
     { section: "Network" },
     { id: "distributors", label: "Distributors", roles: ["superadmin", "manager"] },
     { id: "customers", label: "Customers", roles: ["superadmin", "manager"] },
@@ -750,7 +754,7 @@ function Sidebar({ active, setActive, collapsed, currentUser }) {
 
   const nav = allNav.filter(item => !item.roles || item.roles.includes(currentUser?.role));
 
-  const icons = { dashboard: "D", orders: "O", tracking: "T", products: "P", inventory: "I", distributors: "N", customers: "C", reports: "R", admin: "A", settings: "S" };
+  const icons = { dashboard: "D", orders: "O", tracking: "T", products: "P", inventory: "I", qrcode: "Q", distributors: "N", customers: "C", reports: "R", admin: "A", settings: "S" };
 
   return (
     <div style={{ width: collapsed ? 58 : 218, background: "linear-gradient(160deg, #1a4d2e 0%, #0f2910 100%)", display: "flex", flexDirection: "column", transition: "width 0.25s", overflow: "hidden", flexShrink: 0 }}>
@@ -819,7 +823,7 @@ function Sidebar({ active, setActive, collapsed, currentUser }) {
 // ─── TopBar ───────────────────────────────────────────────────────────────────
 
 function TopBar({ active, collapsed, setCollapsed, onLogout, currentUser, selectedLocation, setSelectedLocation }) {
-  const titles = { dashboard: "Dashboard", orders: "Order Management", tracking: "Shipment Tracking", products: "Product Catalog", inventory: "Inventory", distributors: "Distributor Network", customers: "Customers", reports: "Reports & Analytics", admin: "Admin Panel", settings: "Settings" };
+  const titles = { dashboard: "Dashboard", orders: "Order Management", tracking: "Shipment Tracking", products: "Product Catalog", inventory: "Inventory", qrcode: "QR Code Tracking", distributors: "Distributor Network", customers: "Customers", reports: "Reports & Analytics", admin: "Admin Panel", settings: "Settings" };
   const [userMenu, setUserMenu] = useState(false);
 
   return (
@@ -1946,6 +1950,57 @@ function SettingsPage({ currentUser, showToast }) {
   );
 }
 
+// ─── QR Code Page ─────────────────────────────────────────────────────────────
+
+function QRCodePage() {
+  const [qrTab, setQrTab] = useState("scanner");
+
+  const C = {
+    surface: "#fff",
+    border: "#e5e7eb",
+    text: "#1f2937",
+    muted: "#6b7280",
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, gap: 16, padding: "20px 24px", overflowY: "auto", overflowX: "hidden" }}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        {[
+          { id: "scanner", label: "📱 Scan QR Code", icon: "S" },
+          { id: "generator", label: "🏷️ Generate QR Code", icon: "G" },
+          { id: "history", label: "📋 View History", icon: "H" },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setQrTab(tab.id)}
+            style={{
+              padding: "10px 20px",
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              border: qrTab === tab.id ? "2px solid #16a34a" : `1px solid ${C.border}`,
+              background: qrTab === tab.id ? "#16a34a" : C.surface,
+              color: qrTab === tab.id ? "#fff" : C.text,
+              transition: "all 0.2s",
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, overflow: "auto", flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1 }}>
+          {qrTab === "scanner" && <QRScanner />}
+          {qrTab === "generator" && <QRCodeGenerator />}
+          {qrTab === "history" && <QRCodeHistory />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── App Root ─────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -1969,6 +2024,7 @@ export default function App() {
     tracking: <TrackingPage />,
     products: <ProductsPage showToast={showToast} />,
     inventory: <InventoryPage showToast={showToast} />,
+    qrcode: <QRCodePage />,
     distributors: <DistributorsPage showToast={showToast} />,
     customers: <CustomersPage showToast={showToast} selectedLocation={selectedLocation} />,
     reports: <ReportsPage />,
@@ -1990,7 +2046,7 @@ export default function App() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <TopBar active={activePage} collapsed={collapsed} setCollapsed={setCollapsed} onLogout={logout} currentUser={currentUser}
           selectedLocation={selectedLocation} setSelectedLocation={setSelectedLocation} />
-        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           {pages[activePage] || <div style={{ padding: 40, textAlign: "center", color: C.faint }}>Page not found or access restricted.</div>}
         </div>
       </div>

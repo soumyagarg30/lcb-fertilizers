@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from .routers import auth as auth_router, inventory as inventory_router
 from .db import init_db, AsyncSessionLocal
 from .config import settings
-from .models import User, Warehouse, Product, Inventory, Customer, Order, OrderItem, StockMovement, Notification
+from .models import User, Warehouse, Product, Inventory, Customer, Order, OrderItem, StockMovement, Notification, QRCode, QRCodeScan
 from .auth import get_password_hash
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,13 +11,14 @@ app = FastAPI(title="Agriflow FastAPI")
 
 app.include_router(auth_router.router, prefix="/api")
 app.include_router(inventory_router.router, prefix="/api")
-from .routers import users as users_router, products as products_router, orders as orders_router, transfers as transfers_router, notifications as notifications_router, dashboard as dashboard_router, customers as customers_router
+from .routers import users as users_router, products as products_router, orders as orders_router, transfers as transfers_router, notifications as notifications_router, dashboard as dashboard_router, customers as customers_router, qr_code as qr_code_router
 app.include_router(users_router.router, prefix="/api")
 app.include_router(products_router.router, prefix="/api")
 app.include_router(orders_router.router, prefix="/api")
 app.include_router(transfers_router.router, prefix="/api")
 app.include_router(notifications_router.router, prefix="/api")
 app.include_router(dashboard_router.router, prefix="/api")
+app.include_router(qr_code_router.router, prefix="/api")
 app.include_router(customers_router.router, prefix="/api")
 
 
