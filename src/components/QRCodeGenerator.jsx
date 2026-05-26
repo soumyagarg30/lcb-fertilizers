@@ -1,6 +1,33 @@
 import React, { useState } from 'react';
 import './QRCodeGenerator.css';
 
+const dummyQRCodes = [
+  {
+    id: 'QR-INV-001',
+    distributor: 'Aditya Agro Distributors',
+    dispatchedFrom: 'Central Warehouse',
+    inventoryLocation: 'Row 3 / Shelf B',
+    stockLeft: '240 units',
+    positionLeft: 'Aisle 3, Rack 2'
+  },
+  {
+    id: 'QR-INV-002',
+    distributor: 'Greenfields Transport',
+    dispatchedFrom: 'North Hub',
+    inventoryLocation: 'Row 1 / Shelf A',
+    stockLeft: '120 units',
+    positionLeft: 'Aisle 1, Rack 1'
+  },
+  {
+    id: 'QR-INV-003',
+    distributor: 'Harvest Supply Co.',
+    dispatchedFrom: 'Central Warehouse',
+    inventoryLocation: 'Row 2 / Shelf D',
+    stockLeft: '80 units',
+    positionLeft: 'Aisle 2, Rack 4'
+  }
+];
+
 export default function QRCodeGenerator() {
   const [formData, setFormData] = useState({
     item_name: '',
@@ -45,7 +72,6 @@ export default function QRCodeGenerator() {
         throw new Error(detail);
       }
 
-      setGeneratedQR(data);
       setGeneratedQR(data);
       setFormData({
         item_name: '',
@@ -122,6 +148,29 @@ export default function QRCodeGenerator() {
   return (
     <div className="qr-generator">
       <h2>Generate QR Code for Inventory</h2>
+
+      <section className="qr-sample-list">
+        <h3>Sample QR Codes (dummy inventory data)</h3>
+        <div className="qr-cards">
+          {dummyQRCodes.map((qr) => (
+            <div key={qr.id} className="qr-card">
+              <div className="qr-card-header">
+                <span className="qr-card-id">{qr.id}</span>
+              </div>
+              <div className="qr-card-graphic" aria-hidden="true">
+                <span>QR</span>
+              </div>
+              <div className="qr-card-content">
+                <p><strong>Distributor:</strong> {qr.distributor}</p>
+                <p><strong>Dispatched from:</strong> {qr.dispatchedFrom}</p>
+                <p><strong>Inventory location:</strong> {qr.inventoryLocation}</p>
+                <p><strong>Stock left:</strong> {qr.stockLeft}</p>
+                <p><strong>Position left:</strong> {qr.positionLeft}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <form onSubmit={handleGenerateQR} className="qr-form">
         <div className="form-group">
