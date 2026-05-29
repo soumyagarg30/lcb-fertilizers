@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from .routers import auth as auth_router, inventory as inventory_router
 from .db import init_db, AsyncSessionLocal
 from .config import settings
@@ -8,6 +9,14 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 app = FastAPI(title="Agriflow FastAPI")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth_router.router, prefix="/api")
 app.include_router(inventory_router.router, prefix="/api")

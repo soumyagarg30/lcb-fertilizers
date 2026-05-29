@@ -1,18 +1,31 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import select, Session
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
-import qrcode
+import os
+import uuid
 import io
 import base64
 from datetime import datetime
-import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlmodel import select, Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List, Optional, Dict, Any
+from pydantic import BaseModel
+import qrcode
 
 from ..db import get_session
 from ..models import QRCode, QRCodeScan, Product, Inventory, Warehouse
 from ..auth import get_current_user
 
 router = APIRouter(tags=["qr-code"])
+
+
+class QRCodeCreateRequest(BaseModel):
+    item_name: Optional[str] = None
+    product_id: Optional[str] = None
+    warehouse_id: Optional[str] = None
+    inventory_id: Optional[str] = None
+    batch_number: Optional[str] = None
+    item_metadata: Optional[Dict[str, Any]] = None
+    frontend_origin: Optional[str] = None
 
 
 class QRCodeCreate:
@@ -65,15 +78,24 @@ class QRCodeScanRecord:
 
 @router.post("/qr-code/generate")
 async def generate_qr_code(
-    qr_data: dict,
+    qr_data: QRCodeCreateRequest,
+    request: Request,
     session: AsyncSession = Depends(get_session),
-    current_user: dict = Depends(get_current_user),
 ) -> dict:
     """Generate a new QR code for tracking inventory"""
     try:
         # Generate unique QR code identifier
         qr_id = str(uuid.uuid4())
         
+        # Determine frontend app URL for QR code scanning.
+        app_base_url = os.getenv("APP_BASE_URL")
+        if not app_base_url and qr_data.frontend_origin:
+            app_base_url = qr_data.frontend_origin
+        if not app_base_url:
+            app_base_url = request.headers.get("origin") or "http://localhost:3000"
+        app_base_url = app_base_url.rstrip("/")
+        qr_view_url = f"{app_base_url}/qr/{qr_id}"
+
         # Create QR code object
         qr = qrcode.QRCode(
             version=1,
@@ -81,10 +103,9 @@ async def generate_qr_code(
             box_size=10,
             border=4,
         )
-        qr.add_data(qr_id)
+        qr.add_data(qr_view_url)
         qr.make(fit=True)
-        
-        # Generate image
+
         img = qr.make_image(fill_color="black", back_color="white")
         
         # Convert to base64
@@ -97,13 +118,13 @@ async def generate_qr_code(
         db_qr = QRCode(
             id=qr_id,
             code=qr_id,
-            product_id=qr_data.get("product_id"),
-            warehouse_id=qr_data.get("warehouse_id"),
-            inventory_id=qr_data.get("inventory_id"),
-            batch_number=qr_data.get("batch_number"),
-            item_name=qr_data.get("item_name"),
-            item_metadata=qr_data.get("item_metadata", {}),
-            created_by=current_user.get("user_id") or current_user.get("id"),
+            product_id=qr_data.product_id,
+            warehouse_id=qr_data.warehouse_id,
+            inventory_id=qr_data.inventory_id,
+            batch_number=qr_data.batch_number,
+            item_name=qr_data.item_name,
+            item_metadata=qr_data.item_metadata or {},
+            created_by=None,
         )
         
         session.add(db_qr)
@@ -113,6 +134,7 @@ async def generate_qr_code(
         return {
             "id": db_qr.id,
             "code": db_qr.code,
+            "qr_url": qr_view_url,
             "qr_image_base64": img_base64,
             "product_id": db_qr.product_id,
             "warehouse_id": db_qr.warehouse_id,
@@ -130,9 +152,8 @@ async def generate_qr_code(
 async def get_qr_code_info(
     qr_code_id: str,
     session: AsyncSession = Depends(get_session),
-    current_user: dict = Depends(get_current_user),
 ) -> dict:
-    """Get information about a specific QR code"""
+    """Get information about a specific QR code (public endpoint)"""
     try:
         result = await session.execute(select(QRCode).where(QRCode.id == qr_code_id))
         qr = result.scalars().first()

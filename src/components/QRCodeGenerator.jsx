@@ -56,6 +56,14 @@ export default function QRCodeGenerator() {
     setLoading(true);
     setError(null);
 
+    const requestBody = {
+      ...formData,
+      item_metadata: {
+        ...formData.metadata,
+      },
+      frontend_origin: window.location.origin,
+    };
+
     try {
       const response = await fetch(`${apiBase}/qr-code/generate`, {
         method: 'POST',
@@ -63,7 +71,7 @@ export default function QRCodeGenerator() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('agriflow_token')}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(requestBody)
       });
 
       const data = await response.json().catch(() => null);
@@ -244,6 +252,14 @@ export default function QRCodeGenerator() {
             <p><strong>Item:</strong> {generatedQR.item_name}</p>
             {generatedQR.batch_number && <p><strong>Batch:</strong> {generatedQR.batch_number}</p>}
             <p><strong>Created:</strong> {new Date(generatedQR.created_at).toLocaleString()}</p>
+            {generatedQR.qr_url && (
+              <p style={{ marginTop: 12, wordBreak: 'break-all' }}>
+                <strong>QR URL:</strong> <a href={generatedQR.qr_url} target="_blank" rel="noreferrer">{generatedQR.qr_url}</a>
+              </p>
+            )}
+            <p style={{ marginTop: 12, padding: 12, background: '#dbeafe', borderRadius: 8, color: '#1e40af', fontSize: 13 }}>
+              ✓ Scan this QR code to view the item information on a dedicated page
+            </p>
           </div>
           <div className="qr-actions">
             <button onClick={handleDownloadQR} className="btn-secondary">Download QR Code</button>

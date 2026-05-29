@@ -6,6 +6,7 @@ import {
 import QRCodeGenerator from "./components/QRCodeGenerator";
 import QRScanner from "./components/QRScanner";
 import QRCodeHistory from "./components/QRCodeHistory";
+import QRCodeViewPage from "./components/QRCodeViewPage";
 
 // ─── Google OAuth Config ──────────────────────────────────────────────────────
 // Use Vite environment variable `VITE_GOOGLE_CLIENT_ID` when provided.
@@ -35,7 +36,7 @@ function isTokenValid(token) {
 }
 
 // ─── API Helper ──────────────────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE || `http://${window.location.hostname}:8000`;
 async function apiFetch(path, opts = {}) {
   const url = `${API_BASE}${path}`;
   const headers = opts.headers || {};
@@ -540,7 +541,7 @@ function LoginPage({ onLogin, onGoogleLogin }) {
     // Try server-side verification first
     (async () => {
       try {
-        const r = await fetch((import.meta.env.VITE_API_BASE || "http://localhost:8000") + "/api/auth/google", {
+        const r = await fetch((import.meta.env.VITE_API_BASE || `http://${window.location.hostname}:8000`) + "/api/auth/google", {
           method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ credential: response.credential })
         });
         const data = await r.json();
@@ -2004,6 +2005,13 @@ function QRCodePage() {
 // ─── App Root ─────────────────────────────────────────────────────────────────
 
 export default function App() {
+  // Check for QR view routes (public, no auth required)
+  const pathMatch = window.location.pathname.match(/^\/qr\/([a-f0-9\-]+)$/i);
+  if (pathMatch) {
+    const qrId = pathMatch[1];
+    return <QRCodeViewPage qrId={qrId} />;
+  }
+
   const { currentUser, login, logout, googleLogin } = useAuth();
   const [activePage, setActivePage] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
